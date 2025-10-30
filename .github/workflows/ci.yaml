@@ -164,6 +164,18 @@ jobs:
     - name: Login to Amazon ECR
       run: |
          aws ecr get-login-password --region ${{ needs.build.outputs.aws_region }} | docker login --username AWS --password-stdin ${{ env.AWS_ECR_ARN_ID }}.dkr.ecr.${{ needs.build.outputs.aws_region }}.amazonaws.com
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        # context: ${{ inputs.working-directory }}
+        context: .
+        load: true
+        push: false
+        tags: ${{ needs.build.outputs.docker_tag }}
+        provenance: false
+        cache-to: type=gha,mode=max
+        cache-from: type=gha
     
     - id: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
