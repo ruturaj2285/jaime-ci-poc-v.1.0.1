@@ -109,7 +109,7 @@ OWASPZAP:
 
       - name: Update kubeconfig for EKS
         run: |
-          aws eks update-kubeconfig --name $ZAP_CLUSTER_NAME --region $AWS_REGION
+          aws eks update-kubeconfig --name $ZAP_CLUSTER_NAME --region ap-northeast-1
 
       - name: Apply ZAP Deployment
         run: |
