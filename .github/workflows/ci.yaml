@@ -155,6 +155,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ needs.build.outputs.aws_assume_role }}
+        aws-region: ${{ needs.build.outputs.aws_region }}
+        
     - id: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
