@@ -169,7 +169,7 @@ jobs:
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
         artifact_type: "container"
-        artifact_path: ${{ needs.build.outputs.docker_tag }}
+        artifact_path: "my-app:latest"
         display_vulnerability_findings: "enabled"
         critical_threshold: 500
         high_threshold: 500
