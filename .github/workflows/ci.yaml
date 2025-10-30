@@ -115,7 +115,7 @@ jobs:
         run: |
           kubectl delete deploy zap -n $ZAP_NAMESPACE --ignore-not-found --force --grace-period=0
           kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=delete --timeout=120s || true
-          kubectl apply -f Backend-Project-Template/.aws-pipeline/assets/zap-deployment.yaml -n $ZAP_NAMESPACE
+          kubectl apply -f zap-deployment.yaml -n $ZAP_NAMESPACE
           echo "ZAP deployment applied."
 
       - name: Wait for Pod Ready
