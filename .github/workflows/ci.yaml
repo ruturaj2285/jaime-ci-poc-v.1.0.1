@@ -140,10 +140,7 @@ jobs:
 
       - name: Copy Swagger File into ZAP Pod
         run: |
-          POD=$(kubectl get pods -n "$ZAP_NAMESPACE" -l app=zap -o jsonpath='{.items[0].metadata.name}')
-          echo "Copying swagger.json into pod: $POD"
-          kubectl cp zap-spec/swagger.json "$ZAP_NAMESPACE/$POD:/zap/swagger.json"
-          kubectl exec -i "$POD" -n "$ZAP_NAMESPACE" -- ls -l /zap/swagger.json
+          kubectl cp zap-spec/swagger.json jaime-poc-2285/zap-server-5f9cfcfb6b-ch966:/zap/swagger.json
 
 
       - name: Run ZAP Scan (Local Swagger)
