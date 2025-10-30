@@ -15,32 +15,27 @@ spec:
       securityContext:
         fsGroup: 1000
       containers:
-      - name: zap
-        image: ghcr.io/zaproxy/zaproxy:stable
-        ports:
-          - containerPort: 8080
-          - containerPort: 8090
-        env:
-          - name: ZAP_PORT
-            value: "8080"
-          - name: HOME
-            value: "/home/zap"
-        volumeMounts:
-          - name: zap-report-storage
-            mountPath: /zap/reports
-          - name: zap-workdir              # 👈 Add this mount
-            mountPath: /zap/wrk            # 👈 Required by zap-baseline.py
-        command: ["/bin/sh","-c"]
-        args:
-          - >
-            zap.sh -daemon -host 0.0.0.0 -port 8080
-            -config api.key=12345
-            -config api.addrs.addr.name=.*
-            -config api.addrs.addr.regex=true;
-            tail -f /dev/null
+        - name: zap
+          image: ghcr.io/zaproxy/zaproxy:stable
+          ports:
+            - containerPort: 8080
+            - containerPort: 8090
+          env:
+            - name: ZAP_PORT
+              value: "8080"
+            - name: HOME
+              value: "/home/zap"
+          volumeMounts:
+            - name: zap-workdir
+              mountPath: /zap/wrk     # Required for zap-baseline.py
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              zap.sh -daemon -host 0.0.0.0 -port 8080
+              -config api.key=12345
+              -config api.addrs.addr.name=.*
+              -config api.addrs.addr.regex=true;
+              tail -f /dev/null
       volumes:
-        - name: zap-report-storage
-          persistentVolumeClaim:
-            claimName: zap-report-pvc
-        - name: zap-workdir                # 👈 Add this volume
-          emptyDir: {}                     # 👈 Temporary working dir
+        - name: zap-workdir
+          emptyDir: {}     # Temporary writable workspace
