@@ -214,12 +214,13 @@ runs:
     - id: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
-          artifact_type: "repository"
-          artifact_path: "my-app:latest"   # <-- scan single reference
+          artifact_type: "container"
+          artifact_path: ${{ steps.docker_meta.outputs.tags }}
           display_vulnerability_findings: "enabled"
           critical_threshold: 500
           high_threshold: 500
           medium_threshold: 500
           low_threshold: 500
           other_threshold: 500
+
 
