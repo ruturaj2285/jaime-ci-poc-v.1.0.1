@@ -116,7 +116,8 @@ jobs:
           # kubectl delete deploy zap -n $ZAP_NAMESPACE --ignore-not-found --force --grace-period=0
           kubectl create ns "$ZAP_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f 
           # kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=delete --timeout=120s || true
-          kubectl apply -f zap-deployment.yaml -n $ZAP_NAMESPACE
+          # kubectl apply -f zap-deployment.yaml -n $ZAP_NAMESPACE
+          kubectl -n "$ZAP_NAMESPACE" apply -f zap-deployment.yaml
           echo "ZAP deployment applied."
 
       - name: Wait for Pod Ready
