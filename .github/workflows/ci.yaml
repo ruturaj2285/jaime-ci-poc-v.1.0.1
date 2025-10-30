@@ -82,6 +82,94 @@ jobs:
 
       - name: Run Unit Tests
         run: npm run test
+        
+OWASPZAP:
+    name: OWASP ZAP Scan (Local Swagger)
+    runs-on: ubuntu-latest
+    environment: "security-scan"
+    needs: Unit_Testing
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ZAP_NAMESPACE: jaime-poc-2285
+      ZAP_CLUSTER_NAME: jaime-poc
+      ZAP_SCAN_TYPE: zap-api-scan.py
+
+    steps:
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name $ZAP_CLUSTER_NAME --region $AWS_REGION
+
+      - name: Apply ZAP Deployment
+        run: |
+          kubectl delete deploy zap -n $ZAP_NAMESPACE --ignore-not-found --force --grace-period=0
+          kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=delete --timeout=120s || true
+          kubectl apply -f Backend-Project-Template/.aws-pipeline/assets/zap-deployment.yaml -n $ZAP_NAMESPACE
+          echo "ZAP deployment applied."
+
+      - name: Wait for Pod Ready
+        run: |
+          kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=condition=ready --timeout=180s
+
+      - name: Get Pod Name
+        id: getpod
+        run: |
+          POD=$(kubectl get pods -n $ZAP_NAMESPACE -l app=zap --sort-by=.metadata.creationTimestamp -o jsonpath="{.items[-1].metadata.name}")
+          echo "pod=$POD" >> $GITHUB_OUTPUT
+          echo "Pod name: $POD"
+
+      - name: Prepare Swagger Spec
+        run: |
+          mkdir -p zap-spec
+          cp docs/swagger.json zap-spec/
+          echo "Using swagger.json from docs/"
+          head -n 20 zap-spec/swagger.json
+
+      - name: Copy Swagger File into ZAP Pod
+        run: |
+          POD=${{ steps.getpod.outputs.pod }}
+          kubectl cp zap-spec/swagger.json $ZAP_NAMESPACE/$POD:/zap/swagger.json
+          kubectl exec -i $POD -n $ZAP_NAMESPACE -- ls -l /zap/swagger.json
+
+      - name: Run ZAP Scan (Local Swagger)
+        run: |
+          POD=${{ steps.getpod.outputs.pod }}
+          echo "Running ZAP scan using swagger.json on localhost..."
+          kubectl exec -i $POD -n $ZAP_NAMESPACE -- /bin/sh -c "$ZAP_SCAN_TYPE -t /zap/swagger.json -f openapi -r /zap/zap_api_report.html -J /zap/zap_api_report.json"
+          echo "ZAP scan completed."
+          kubectl exec -i $POD -n $ZAP_NAMESPACE -- ls -l /zap/zap_api_report.html
+
+      - name: Copy Report from Pod
+        run: |
+          POD=${{ steps.getpod.outputs.pod }}
+          kubectl cp $ZAP_NAMESPACE/$POD:/zap/zap_api_report.html zap_api_report.html
+          kubectl cp $ZAP_NAMESPACE/$POD:/zap/zap_api_report.json zap_api_report.json
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZAP-Scan-Report
+          path: |
+            zap_api_report.html
+            zap_api_report.json
+
+      - name: Show Report Preview
+        run: |
+          echo "=== ZAP Report Preview ==="
+          head -n 20 zap_api_report.json
+
+        
 
 
   # OWASPZAP:
