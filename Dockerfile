@@ -3,4 +3,4 @@ CMD ["echo", "Intentional vuln test"]
 LABEL dummy="build-001"
 RUN echo "noop"
 RUN echo "Hello"
-RUN echo "JAIME"
+RUN echo "JAIM"
