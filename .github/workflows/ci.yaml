@@ -160,7 +160,11 @@ jobs:
       with:
         role-to-assume: ${{ needs.build.outputs.aws_assume_role }}
         aws-region: ${{ needs.build.outputs.aws_region }}
-        
+
+    - name: Login to Amazon ECR
+      run: |
+         aws ecr get-login-password --region ${{ needs.build.outputs.aws_region }} | docker login --username AWS --password-stdin ${{ env.AWS_ECR_ARN_ID }}.dkr.ecr.${{ needs.build.outputs.aws_region }}.amazonaws.com
+    
     - id: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
