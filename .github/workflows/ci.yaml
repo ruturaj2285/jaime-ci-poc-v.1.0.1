@@ -83,7 +83,7 @@ jobs:
       - name: Run Unit Tests
         run: npm run test
         
-OWASPZAP:
+  OWASPZAP:
     name: OWASP ZAP Scan (Local Swagger)
     runs-on: ubuntu-latest
     environment: "security-scan"
