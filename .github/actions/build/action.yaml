@@ -207,7 +207,7 @@ runs:
         push: false
         tags: ${{ steps.docker_meta.outputs.tags }}
         provenance: false
-
+        
     - name: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
@@ -219,20 +219,3 @@ runs:
           medium_threshold: 500
           low_threshold: 500
           other_threshold: 500
-
-      # Reports + artifacts same as before...
-    - name: Upload Inspector Reports
-      uses: actions/upload-artifact@v4
-      with:
-          name: amazon-inspector-results
-          path: |
-            ${{ steps.inspector.outputs.artifact_sbom }}
-            ${{ steps.inspector.outputs.inspector_scan_results }}
-            ${{ steps.inspector.outputs.inspector_scan_results_csv }}
-            ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
-
-    - name: On vulnerability threshold exceeded
-      run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
-
-
-
