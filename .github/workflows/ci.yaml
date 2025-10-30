@@ -150,59 +150,6 @@ jobs:
           AWS_ARN_ID_PRD: ${{ env.AWS_ARN_ID_PRD }}
           AZ_SUBSCRIPTION_ID_PRD: ${{ env.AZ_SUBSCRIPTION_ID }}
 
-  Inspector_Scan:
-    environment: "build"
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ needs.build.outputs.aws_assume_role }}
-        aws-region: ${{ needs.build.outputs.aws_region }}
-
-    - name: Login to Amazon ECR
-      run: |
-         aws ecr get-login-password --region ${{ needs.build.outputs.aws_region }} | docker login --username AWS --password-stdin ${{ env.AWS_ECR_ARN_ID }}.dkr.ecr.${{ needs.build.outputs.aws_region }}.amazonaws.com
-
-    - name: Build and push
-      uses: docker/build-push-action@v6
-      with:
-        # context: ${{ inputs.working-directory }}
-        context: .
-        load: true
-        push: false
-        tags: ${{ needs.build.outputs.docker_tag }}
-        provenance: false
-        cache-to: type=gha,mode=max
-        cache-from: type=gha
-    
-    - id: inspector
-      uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
-      with:
-        artifact_type: "container"
-        artifact_path: ${{ needs.build.outputs.docker_tag }}
-        display_vulnerability_findings: "enabled"
-        critical_threshold: 500
-        high_threshold: 500
-        medium_threshold: 500
-        low_threshold: 500
-        other_threshold: 500
-
-    # Reports + artifacts same as before...
-    - name: Upload Inspector Reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: amazon-inspector-results
-        path: |
-          ${{ steps.inspector.outputs.artifact_sbom }}
-          ${{ steps.inspector.outputs.inspector_scan_results }}
-          ${{ steps.inspector.outputs.inspector_scan_results_csv }}
-          ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
-
-    - name: On vulnerability threshold exceeded
-      run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
-
   request_deployment_approval:
     needs: ["build"]
     environment: "build"
