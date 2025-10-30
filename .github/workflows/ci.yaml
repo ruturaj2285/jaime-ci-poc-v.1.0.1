@@ -120,16 +120,16 @@ jobs:
           kubectl -n "$ZAP_NAMESPACE" apply -f zap-deployment.yaml
           echo "ZAP deployment applied."
 
-      - name: Wait for Pod Ready
-        run: |
-          kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=condition=ready --timeout=180s
+      # - name: Wait for Pod Ready
+      #   run: |
+      #     kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=condition=ready --timeout=180s
 
-      - name: Get Pod Name
-        id: getpod
-        run: |
-          POD=$(kubectl get pods -n $ZAP_NAMESPACE -l app=zap --sort-by=.metadata.creationTimestamp -o jsonpath="{.items[-1].metadata.name}")
-          echo "pod=$POD" >> $GITHUB_OUTPUT
-          echo "Pod name: $POD"
+      # - name: Get Pod Name
+      #   id: getpod
+      #   run: |
+      #     POD=$(kubectl get pods -n $ZAP_NAMESPACE -l app=zap --sort-by=.metadata.creationTimestamp -o jsonpath="{.items[-1].metadata.name}")
+      #     echo "pod=$POD" >> $GITHUB_OUTPUT
+      #     echo "Pod name: $POD"
 
       - name: Prepare Swagger Spec
         run: |
