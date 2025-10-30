@@ -207,8 +207,11 @@ runs:
         push: false
         tags: ${{ steps.docker_meta.outputs.tags }}
         provenance: false
+        cache-to: type=gha,mode=max
+        cache-from: type=gha
+
         
-    - name: inspector
+    - id: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
           artifact_type: "container"
