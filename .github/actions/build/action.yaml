@@ -210,7 +210,7 @@ runs:
         cache-to: type=gha,mode=max
         cache-from: type=gha
         
-    - id: inspector Scaning
+    - id: inspector
       uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
       with:
           artifact_type: "container"
@@ -234,4 +234,5 @@ runs:
 
     # - name: On vulnerability threshold exceeded
     #   run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
 
