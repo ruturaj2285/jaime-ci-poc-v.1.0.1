@@ -83,7 +83,7 @@ jobs:
       - name: Run Unit Tests
         run: npm run test
         
-OWASPZAP:
+  OWASPZAP:
     name: OWASP ZAP Scan (Local Swagger)
     runs-on: ubuntu-latest
     environment: "security-scan"
@@ -109,13 +109,13 @@ OWASPZAP:
 
       - name: Update kubeconfig for EKS
         run: |
-          aws eks update-kubeconfig --name $ZAP_CLUSTER_NAME --region $AWS_REGION
+          aws eks update-kubeconfig --name $ZAP_CLUSTER_NAME --region ap-northeast-1
 
       - name: Apply ZAP Deployment
         run: |
           kubectl delete deploy zap -n $ZAP_NAMESPACE --ignore-not-found --force --grace-period=0
           kubectl wait pod -n $ZAP_NAMESPACE -l app=zap --for=delete --timeout=120s || true
-          kubectl apply -f Backend-Project-Template/.aws-pipeline/assets/zap-deployment.yaml -n $ZAP_NAMESPACE
+          kubectl apply -f zap-deployment.yaml -n $ZAP_NAMESPACE
           echo "ZAP deployment applied."
 
       - name: Wait for Pod Ready
