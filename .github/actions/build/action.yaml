@@ -222,17 +222,18 @@ runs:
           low_threshold: 500
           other_threshold: 500
           
-    # - name: Upload Inspector Reports
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: amazon-inspector-results
-    #     path: |
-    #       ${{ steps.inspector.outputs.artifact_sbom }}
-    #       ${{ steps.inspector.outputs.inspector_scan_results }}
-    #       ${{ steps.inspector.outputs.inspector_scan_results_csv }}
-    #       ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+    - name: Upload Inspector Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: amazon-inspector-results
+        path: |
+          ${{ steps.inspector.outputs.artifact_sbom }}
+          ${{ steps.inspector.outputs.inspector_scan_results }}
+          ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+          ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
 
-    # - name: On vulnerability threshold exceeded
-    #   run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+    - name: On vulnerability threshold exceeded
+      run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
 
 
