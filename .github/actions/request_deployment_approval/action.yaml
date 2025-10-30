@@ -1,0 +1,64 @@
+name: CI - Request Deployment Approval
+description: "Request Deployment Approval"
+
+inputs:
+  devOpsProj:
+    required: true
+    description: 'Azure Devops Project Name'
+  devOpsOrg:
+    required: true
+    description: 'Azure Devops Org'
+  devOpsBranch:
+    description: ''
+    default: 'main'
+  devOpsPipelineName:
+    description: ''
+    default: 'Deploy_Request'
+  environment:
+    required: true
+    description: ''
+  clientId:
+    required: true
+    description: ''
+  tenantId:
+    required: true
+    description: ''
+  subscriptionId:
+    required: true
+    description: ''
+  patKeyvault:
+    required: true
+    description: 'Azure KeyVault that contains PATs for azure devops'
+  patKeyvaultSecrets:
+    required: true
+    description: ''
+
+runs:
+  using: composite
+  steps:
+  - uses: actions/checkout@v3
+  - name: Azure Login
+    uses: azure/login@v1
+    with:
+      client-id: ${{ inputs.clientId }}
+      tenant-id: ${{ inputs.tenantId }}
+      subscription-id: ${{ inputs.subscriptionId }}
+
+  # - name: Load PATs from ${{ inputs.patKeyvault }}
+  #   uses: Azure/get-keyvault-secrets@v1
+  #   with:
+  #     keyvault: ${{ inputs.patKeyvault }}
+  #     secrets: ${{ inputs.patKeyvaultSecrets }} # comma separated list of secret keys that need to be fetched from the Key Vault
+  #   id: pats
+
+  - name: "Deployment Approval Request"
+    uses: ./.github/actions/az-devops-approval-request
+    id: deployment_approval
+    # env:
+    #   AZURE_DEVOPS_EXT_PAT: ${{ env.AZDO-PAT}}
+    with:
+      project: ${{ inputs.devOpsProj }}
+      org: ${{ inputs.devOpsOrg }}
+      branch: ${{ inputs.devOpsBranch }}
+      pipeline_name: ${{ inputs.devOpsPipelineName }}
+      environment: ${{ inputs.environment }}

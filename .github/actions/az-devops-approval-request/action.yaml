@@ -1,0 +1,35 @@
+name: 'Azure DevOps - Approval Request'
+description: 'Creates a deployment approval for an Azure DevOps project.'
+author: 'JERA'
+inputs:
+  project:
+    description: 'Name or ID of the project. You can configure the default project using az devops configure -d project=NAME_OR_ID. Required if not configured as default or picked up via git config.'
+    required: true
+  org:
+    description: 'Azure DevOps organization URL. You can configure the default organization using az devops configure -d organization=ORG_URL. Required if not configured as default or picked up via git config.'
+    required: true
+  branch:
+    description: 'Branch name for which the pipeline will be configured. If omitted, it will be auto-detected from local repository.'
+    required: true
+  pipeline_name:
+    description: 'AZ DevOps pipeline name'
+    required: true
+  environment:
+    description: 'Deployment environment name on AZ DevOps. I.e: Development, Staging, Production'
+    required: true
+  duration:
+    description: 'How long the script will wait for approval, in days. Defaults to 10 days.'
+    default: '10'
+    required: false
+  poll_interval:
+    description: 'The polling interval in seconds.'
+    default: '10'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+  - shell: bash
+    run: chmod +x .github/scripts/request_approval.sh
+
+  - shell: bash
+    run: ./.github/scripts/request_approval.sh -project ${{ inputs.project }} -org ${{ inputs.org }} -environment ${{ inputs.environment }} -branch ${{ inputs.branch }} -name ${{ inputs.pipeline_name }} -duration ${{ inputs.duration }} -interval ${{ inputs.poll_interval }}

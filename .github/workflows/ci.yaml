@@ -1,0 +1,244 @@
+name: Jaime-Frontend
+
+on:
+  workflow_dispatch: {}
+
+  push:
+    branches:
+      - "release/*"
+      - "develop/*"
+      - main  # remove
+    tags:
+      - "v*.*.*"
+
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  OPENAPI_FOLDER: docs
+  # AWS_ECR_ARN_ID: "149653749155"     # Edit
+  # AWS_ARN_ID_DEV: "813070094344"
+  # AWS_ARN_ID_STG: "132772905962"
+  # AWS_ARN_ID_PRD: "542585190769"
+  # AWS_STS_USER: AssumeRoleForPipeline  # Edit
+  # AZ_SUBSCRIPTION_ID: c649caeb-f619-4f45-b199-48207ab3731e
+  # AZ_CLIENT_ID: 3ba228ea-f261-4a76-8dd8-3b28e0d6730e
+  # AZ_TENANT_ID: 2840389b-0f81-496f-b742-ac794a5da61e
+  AWS_ECR_ARN_ID: "227295996532"    
+  AWS_ARN_ID_DEV: "227295996532"  
+  AWS_STS_USER: jaime-role
+  AZ_SUBSCRIPTION_ID: 618a2bb0-72e3-4d01-beef-27ad0d0f77d8
+  AZ_CLIENT_ID: 6da1fa95-ac00-4e48-8a40-7b9483f48e83
+  AZ_TENANT_ID: 13ee1f99-2c19-4ffe-8479-7229725bc499
+  AZ_DEVOPS_PROJ: JAIME-vebuin
+  AZ_DEVOPS_ORG: https://dev.azure.com/hariom0502
+  AZ_DEVOPS_BRANCH: main
+  AZ_DEVOPS_APPROVAL_PIPELINE_NAME: Deploy_Request
+
+jobs:
+  Linting_and_Formatting:
+    runs-on: ubuntu-latest
+    environment: production
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm run start
+
+      - name: Run ESLint (linting)
+        run: npm run lint
+
+      - name: Run Prettier (formatting check)
+        run: npm run format:check
+
+  Unit_Testing:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: Linting_and_Formatting
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm run start
+
+      - name: Run Unit Tests
+        run: npm run test
+
+
+  # OWASPZAP:
+    # runs-on: ["jccai"]
+    # environment: production
+    # steps:
+    #   - name: Checkout repository
+    #     uses: actions/checkout@v4
+
+    #   - name: Setup Node.js
+    #     uses: actions/setup-node@v4
+    #     with:
+    #       node-version: 20
+
+    #   - name: Install dependencies
+    #     run: npm ci
+
+    #   - name: Run ESLint (linting)
+    #     run: npx eslint . --max-warnings=0
+
+    #   - name: Run Prettier (formatting check)
+    #     run: npx prettier --check .
+
+  build:
+    environment: "build"
+    runs-on: ubuntu-latest
+    outputs:
+      # image_name: ${{ steps.image_name.outputs.result }}
+      aws_assume_role: ${{ steps.build.outputs.aws_assume_role }}
+      aws_arn_id: ${{ steps.build.outputs.aws_arn_id }}
+      aws_region: ${{ steps.build.outputs.aws_region }}
+      az_subscription_id: ${{ steps.build.outputs.az_subscription_id }}
+      docker_tag: ${{ steps.build.outputs.docker_tag }}
+      environment: ${{ steps.build.outputs.environment }}
+      environment_display: ${{ steps.build.outputs.environment_display }}
+      envFile: ${{ steps.build.outputs.envFile}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # - name: Execute build for ${{ steps.image_name.outputs.result }}
+      - name: Execute build for Jaime-Frontend
+        uses: ./.github/actions/build
+        id: build
+        with:
+          # working-directory: ${{ matrix.files }}
+          AWS_ECR_ARN_ID: ${{ env.AWS_ECR_ARN_ID }}
+          AWS_REGION: ap-northeast-1
+          AWS_STS_USER: ${{ env.AWS_STS_USER }}
+          IMAGE_NAME: jaime-frontend
+
+
+          #DEV
+          IS_DEV: ${{ github.ref_type == 'branch' && startsWith(github.ref_name, 'develop') }}
+          AWS_ARN_ID_DEV: ${{ env.AWS_ARN_ID_DEV }}
+          AZ_SUBSCRIPTION_ID_DEV: ${{ env.AZ_SUBSCRIPTION_ID }}
+
+          #STG
+          IS_STG: ${{ github.ref_type == 'branch' && startsWith(github.ref_name, 'release') }}
+          AWS_ARN_ID_STG: ${{ env.AWS_ARN_ID_STG }}
+          AZ_SUBSCRIPTION_ID_STG: ${{ env.AZ_SUBSCRIPTION_ID }}
+
+          #PRD
+          IS_PROD: ${{ github.ref_type == 'tag' && !contains(github.ref_name, '-rc') || github.event_name == 'pull_request' }}
+          AWS_ARN_ID_PRD: ${{ env.AWS_ARN_ID_PRD }}
+          AZ_SUBSCRIPTION_ID_PRD: ${{ env.AZ_SUBSCRIPTION_ID }}
+
+  # Inspector_Scan:
+  #   environment: "build"
+  #   runs-on: ["jccai"]
+  #   steps:
+  #   - id: inspector
+  #     uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
+  #     with:
+  #       artifact_type: "container"
+  #       artifact_path: "my-app:latest"   # <-- scan single reference
+  #       display_vulnerability_findings: "enabled"
+  #       critical_threshold: 500
+  #       high_threshold: 500
+  #       medium_threshold: 500
+  #       low_threshold: 500
+  #       other_threshold: 500
+
+  #   # Reports + artifacts same as before...
+  #   - name: Upload Inspector Reports
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: amazon-inspector-results
+  #       path: |
+  #         ${{ steps.inspector.outputs.artifact_sbom }}
+  #         ${{ steps.inspector.outputs.inspector_scan_results }}
+  #         ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+  #         ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+
+  #   - name: On vulnerability threshold exceeded
+  #     run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
+  request_deployment_approval:
+    needs: ["build"]
+    environment: "build"
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    if: needs.build.outputs.environment == 'production' && github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deployment Approval Request
+        uses: ./.github/actions/request_deployment_approval
+        id: deployment_approval
+        with:
+          devOpsProj: ${{ env.AZ_DEVOPS_PROJ }}
+          devOpsOrg: ${{ env.AZ_DEVOPS_ORG }}
+          devOpsBranch: ${{ env.AZ_DEVOPS_BRANCH }}
+          devOpsPipelineName: ${{ env.AZ_DEVOPS_APPROVAL_PIPELINE_NAME }}
+          environment: ${{ needs.build.outputs.environment }}
+          clientId: ${{ env.AZ_CLIENT_ID }}
+          tenantId: ${{ env.AZ_TENANT_ID}}
+          subscriptionId: ${{ env.AZ_SUBSCRIPTION_ID }}
+          patKeyvault: JERA-Terraform-KeyVault
+          patKeyvaultSecrets: AZDO-PAT,GITHUB-PAT
+    
+  # push_to_ecr:
+  #   needs: build_and_scan
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   steps:
+  #   # 1. Configure AWS credentials
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v4
+  #     with:
+  #       aws-region: ${{ secrets.AWS_REGION }}
+  #       role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+    
+  #   # 2. Login to Amazon ECR
+  #   - name: Login to Amazon ECR
+  #     id: login-ecr
+  #     uses: aws-actions/amazon-ecr-login@v2
+    
+  #   # 3. Checkout code (needed if your Dockerfile is in repo)
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+    
+  #   # 4. Set up metadata for tags (commit SHA + latest)
+  #   - name: Docker meta
+  #     id: meta
+  #     uses: docker/metadata-action@v5
+  #     with:
+  #       images: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/jaime-ci-poc
+  #       tags: |
+  #         type=sha,format=short
+  #         type=raw,value=latest
+    
+  #   # 5. Build and push to ECR
+  #   - name: Build and push
+  #     uses: docker/build-push-action@v6
+  #     with:
+  #       context: .
+  #       push: true
+  #       tags: ${{ steps.meta.outputs.tags }}
+   

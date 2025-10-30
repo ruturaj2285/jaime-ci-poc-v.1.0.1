@@ -1,0 +1,242 @@
+name: CI - Build
+description: "Build"
+
+inputs:
+  working-directory:
+    description: ""
+    required: true
+  AWS_ECR_ARN_ID:
+    description: ""
+    required: true
+  AWS_STS_USER:
+    description: ""
+    required: true
+  AWS_REGION:
+    description: ""
+    required: true
+  IMAGE_NAME:
+    description: ""
+    required: true
+
+  #DEV
+  IS_DEV:
+    description: ""
+    required: true
+  AWS_ARN_ID_DEV:
+    description: ""
+    required: true
+  AZ_SUBSCRIPTION_ID_DEV:
+    description: ""
+    required: true
+
+  # STG
+  IS_STG:
+    description: ''
+    required: true
+  AWS_ARN_ID_STG:
+    description: ''
+    required: true
+  AZ_SUBSCRIPTION_ID_STG:
+    description: ''
+    required: true
+
+  #PRD
+  IS_PROD:
+    description: ""
+    required: true
+  AWS_ARN_ID_PRD:
+    description: ""
+    required: true
+  AZ_SUBSCRIPTION_ID_PRD:
+    description: ""
+    required: true
+
+outputs:
+  aws_assume_role:
+    description: ""
+    value: ${{ steps.setenv.outputs.aws_assume_role }}
+  aws_arn_id:
+    description: ""
+    value: ${{ steps.setenv.outputs.aws_arn_id }}
+  aws_region:
+    description: ""
+    value: ${{ steps.setenv.outputs.aws_region }}
+  az_subscription_id:
+    description: ""
+    value: ${{ steps.setenv.outputs.az_subscription_id }}
+  docker_tag:
+    description: ""
+    value: ${{ steps.docker_meta.outputs.tags }}
+  environment:
+    description: ""
+    value: ${{ steps.setenv.outputs.environment }}
+  environment_display:
+    description: ""
+    value: ${{ steps.setenv.outputs.environment_display }}
+  envFile:
+    description: ""
+    value: ${{ steps.setenv.outputs.envFile}}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/github-script@v6
+      name: Set environment
+      id: setenv
+      env:
+        IS_DEV: ${{ inputs.IS_DEV }}
+        IS_STG: ${{ inputs.IS_STG }}
+        IS_PROD: ${{ inputs.IS_PROD }}
+        IMAGE_NAME: jaime-frontend
+      with:
+        script: |
+          const {
+            IS_DEV,
+            IS_STG,
+            IS_PROD,
+            IMAGE_NAME,
+          } = process.env
+
+          const fs = require('node:fs')
+          let appVars = undefined
+          const varsObj = ${{ toJSON(inputs) }}
+          const jaimePrefix = "jaime_"
+
+          /**
+            * Selects GitHub Variables with name suffixed (i.e: _DEV, _STG, _PRD) and ignore name prefixed with 'GHA_'.
+            */
+          selectVarsBy = (obj, envName) =>
+            Object.entries(obj)
+            .filter(([key, _]) => !key.startsWith('GHA_') && key.endsWith(envName))
+            .map(([key, val]) => [key.slice(0, -envName.length), val])
+
+
+          const stringToBool = (s) => s.toLowerCase() === "true"
+
+          if (stringToBool(IS_DEV)) {
+            # core.setOutput("az_subscription_id", "${{ inputs.AZ_SUBSCRIPTION_ID_DEV }}")
+            core.setOutput("environment", "development")
+            core.setOutput("environment_display", "Dev")
+            core.setOutput("aws_arn_id", "${{ inputs.AWS_ARN_ID_DEV }}")
+            core.setOutput("aws_region", "${{ inputs.AWS_REGION }}")
+            core.setOutput("aws_assume_role", "arn:aws:iam::${{ inputs.AWS_ARN_ID_DEV }}:role/${{ inputs.AWS_STS_USER }}")
+            # appVars = selectVarsBy(varsObj, '_DEV')
+            # if (IMAGE_NAME.startsWith(jaimePrefix)) {
+            #   const slicedStr = IMAGE_NAME.slice(jaimePrefix.length)
+            #   const lambdaFunctionName = `JAIME_Dev_NER_${slicedStr}`
+            #   core.setOutput("lambda_function_name", lambdaFunctionName)
+            #   console.log(`lambdaFunctionName is ${lambdaFunctionName}`)
+            # }
+            console.log("set development environment")
+          } else if (stringToBool(IS_STG)) {
+            # core.setOutput("az_subscription_id", "${{ inputs.AZ_SUBSCRIPTION_ID_DEV }}")
+            core.setOutput("environment", "stg")
+            core.setOutput("environment_display", "STG")
+            core.setOutput("aws_arn_id", "${{ inputs.AWS_ARN_ID_STG }}")
+            core.setOutput("aws_region", "${{ inputs.AWS_REGION }}")
+            core.setOutput("aws_assume_role", "arn:aws:iam::${{ inputs.AWS_ARN_ID_DEV }}:role/${{ inputs.AWS_STS_USER }}")
+            # appVars = selectVarsBy(varsObj, '_TEST')
+            # if (IMAGE_NAME.startsWith(jaimePrefix)) {
+            #   const slicedStr = IMAGE_NAME.slice(jaimePrefix.length)
+            #   const lambdaFunctionName = `JAIME_Test_NER_${slicedStr}`
+            #   core.setOutput("lambda_function_name", lambdaFunctionName)
+            #   console.log(`lambdaFunctionName is ${lambdaFunctionName}`)
+            # }
+            console.log("set development environment")
+          } 
+          # else if (stringToBool(IS_UAT)) {
+          #   # core.setOutput("az_subscription_id", "${{ inputs.AZ_SUBSCRIPTION_ID_DEV }}")
+          #   core.setOutput("environment", "uat")
+          #   core.setOutput("environment_display", "UAT")
+          #   core.setOutput("aws_arn_id", "${{ inputs.AWS_ARN_ID_DEV }}")
+          #   core.setOutput("aws_region", "${{ inputs.AWS_REGION }}")
+          #   core.setOutput("aws_assume_role", "arn:aws:iam::${{ inputs.AWS_ARN_ID_DEV }}:role/${{ inputs.AWS_STS_USER }}")
+          #   appVars = selectVarsBy(varsObj, '_UAT')
+          #   if (IMAGE_NAME.startsWith(jaimePrefix)) {
+          #     const slicedStr = IMAGE_NAME.slice(jaimePrefix.length)
+          #     const lambdaFunctionName = `JAIME_UAT_NER_${slicedStr}`
+          #     core.setOutput("lambda_function_name", lambdaFunctionName)
+          #     console.log(`lambdaFunctionName is ${lambdaFunctionName}`)
+          #   }
+          #   console.log("set development environment")
+          # /*
+          # } else if (stringToBool(IS_STAGING)) {
+          #   core.setOutput("az_subscription_id", "${{ inputs.AZ_SUBSCRIPTION_ID_STG }}")
+          #   core.setOutput("environment", "staging")
+          #   core.setOutput("environment_display", "Staging")
+          #   core.setOutput("aws_arn_id", "${{ inputs.AWS_ARN_ID_STG }}")
+          #   core.setOutput("aws_region", "${{ inputs.AWS_REGION }}")
+          #   core.setOutput("aws_assume_role", "arn:aws:iam::${{ inputs.AWS_ARN_ID_STG }}:role/${{ inputs.AWS_STS_USER }}")
+          #   appVars = selectVarsBy(varsObj, '_STG')
+          #   console.log("set staging environment")
+          # */
+          } 
+          else if (stringToBool(IS_PROD)) {
+            # core.setOutput("az_subscription_id", "${{ inputs.AZ_SUBSCRIPTION_ID_PRD }}")
+            core.setOutput("environment", "production")
+            core.setOutput("environment_display", "Production")
+            core.setOutput("aws_arn_id", "${{ inputs.AWS_ARN_ID_PRD }}")
+            core.setOutput("aws_region", "${{ inputs.AWS_REGION }}")
+            core.setOutput("aws_assume_role", "arn:aws:iam::${{ inputs.AWS_ARN_ID_PRD }}:role/${{ inputs.AWS_STS_USER }}")
+            # appVars = selectVarsBy(varsObj, '_PRD')
+            # if (IMAGE_NAME.startsWith(jaimePrefix)) {
+            #   const slicedStr = IMAGE_NAME.slice(jaimePrefix.length)
+            #   const lambdaFunctionName = `JAIME_Prod_NER_${slicedStr}`
+            #   core.setOutput("lambda_function_name", lambdaFunctionName)
+            #   console.log(`lambdaFunctionName is ${lambdaFunctionName}`)
+            # }
+            console.log("set prod environment")
+          } else {
+            console.error("Unexcpected environment")
+            process.exit(1)
+          }
+
+          # const mergedEntries = [ ...selectVarsBy(varsObj, '_GLOBAL'), ...appVars ]
+          # const file = mergedEntries.map(o => o.join('=')).join('\n')
+          # const fileBase64 = Buffer.from(file).toString('base64')
+          # core.setOutput("envFile", fileBase64)
+
+          # console.log('APP public config variable:')
+          # console.log(JSON.stringify(mergedEntries, null, 2))
+
+    - id: install-aws-cli
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
+        arch: amd64
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Display Role
+      shell: bash
+      run: echo "${{ steps.setenv.outputs.aws_assume_role }}"
+
+    - uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: ${{ steps.setenv.outputs.aws_assume_role }}
+        aws-region: ${{ steps.setenv.outputs.aws_region }}
+
+    - run: aws sts get-caller-identity
+      shell: bash
+
+    - name: Docker meta
+      id: docker_meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ inputs.AWS_ECR_ARN_ID }}.dkr.ecr.${{ inputs.AWS_REGION }}.amazonaws.com/${{ inputs.IMAGE_NAME }}
+        flavor: |  
+          latest=false
+
+    - name: ECR Login
+      shell: bash
+      run: aws ecr get-login-password --region ${{ steps.setenv.outputs.aws_region }} | docker login --username AWS --password-stdin ${{ inputs.AWS_ECR_ARN_ID }}.dkr.ecr.${{ steps.setenv.outputs.aws_region }}.amazonaws.com
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        # context: ${{ inputs.working-directory }}
+        context: .
+        push: false
+        tags: ${{ steps.docker_meta.outputs.tags }}
+        provenance: false
