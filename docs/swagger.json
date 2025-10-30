@@ -1,0 +1,83 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Basic API",
+    "version": "1.0.0",
+    "description": "Example basic Node.js API with Swagger"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3003",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/hello": {
+      "get": {
+        "summary": "Returns a greeting message",
+        "operationId": "getHello",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Hello, World!"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/echo": {
+      "post": {
+        "summary": "Returns what you send to it",
+        "operationId": "postEcho",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "string",
+                    "example": "Test message"
+                  }
+                },
+                "required": ["input"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Echo response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "echo": {
+                      "type": "string",
+                      "example": "Test message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+

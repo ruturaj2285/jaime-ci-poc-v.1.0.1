@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zap-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zap-server
+  template:
+    metadata:
+      labels:
+        app: zap-server
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: zap
+        image: ghcr.io/zaproxy/zaproxy:stable
+        ports:
+          - containerPort: 8080
+          - containerPort: 8090
+        env:
+          - name: ZAP_PORT
+            value: "8080"
+          - name: HOME
+            value: "/home/zap"
+        volumeMounts:
+          - name: zap-report-storage
+            mountPath: /zap/reports
+          - name: zap-workdir              # 👈 Add this mount
+            mountPath: /zap/wrk            # 👈 Required by zap-baseline.py
+        command: ["/bin/sh","-c"]
+        args:
+          - >
+            zap.sh -daemon -host 0.0.0.0 -port 8080
+            -config api.key=12345
+            -config api.addrs.addr.name=.*
+            -config api.addrs.addr.regex=true;
+            tail -f /dev/null
+      volumes:
+        - name: zap-report-storage
+          persistentVolumeClaim:
+            claimName: zap-report-pvc
+        - name: zap-workdir                # 👈 Add this volume
+          emptyDir: {}                     # 👈 Temporary working dir
