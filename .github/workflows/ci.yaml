@@ -108,6 +108,7 @@ jobs:
   build:
     environment: "build"
     runs-on: ubuntu-latest
+    needs: Unit_Testing
     outputs:
       # image_name: ${{ steps.image_name.outputs.result }}
       aws_assume_role: ${{ steps.build.outputs.aws_assume_role }}
