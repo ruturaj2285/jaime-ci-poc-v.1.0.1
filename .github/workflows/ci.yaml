@@ -188,6 +188,58 @@ jobs:
           subscriptionId: ${{ env.AZ_SUBSCRIPTION_ID }}
           patKeyvault: JERA-Terraform-KeyVault
           patKeyvaultSecrets: AZDO-PAT,GITHUB-PAT
+
+
+  push_to_ecr:
+    environment: "build"
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-${{ github.run_id }}
+          path: /tmp
+
+      - name: Load Docker image
+        shell: bash
+        run: |
+          echo "Loading Docker image from artifact..."
+          docker load -i /tmp/docker-image.tar
+          echo "✅ Docker image loaded successfully"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ needs.build.outputs.aws_assume_role }}
+          aws-region: ${{ needs.build.outputs.aws_region }}
+
+      - name: Verify AWS credentials
+        shell: bash
+        run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        shell: bash
+        run: |
+          aws ecr get-login-password --region ${{ needs.build.outputs.aws_region }} | \
+          docker login --username AWS --password-stdin \
+          ${{ env.AWS_ECR_ARN_ID }}.dkr.ecr.${{ needs.build.outputs.aws_region }}.amazonaws.com
+
+      - name: Push Docker image to ECR
+        shell: bash
+        run: |
+          echo "🚀 Pushing Docker images to ECR..."
+          echo "${{ needs.build.outputs.docker_tag }}" | while read -r TAG; do
+            if [ ! -z "$TAG" ]; then
+              echo "Pushing: $TAG"
+              docker push "$TAG"
+            fi
+          done
+          echo "✅ All images pushed to ECR successfully"
     
   # push_to_ecr:
   #   needs: build_and_scan
