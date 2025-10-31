@@ -150,6 +150,21 @@ jobs:
           AWS_ARN_ID_PRD: ${{ env.AWS_ARN_ID_PRD }}
           AZ_SUBSCRIPTION_ID_PRD: ${{ env.AZ_SUBSCRIPTION_ID }}
 
+      - name: Save Docker image to artifact
+        shell: bash
+        run: |
+          DOCKER_TAG=$(echo "${{ steps.build.outputs.docker_tag }}" | head -n1)
+          echo "Saving Docker image: $DOCKER_TAG"
+          docker save "$DOCKER_TAG" -o /tmp/docker-image.tar
+          ls -lh /tmp/docker-image.tar
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ github.run_id }}
+          path: /tmp/docker-image.tar
+          retention-days: 1
+
   request_deployment_approval:
     needs: ["build"]
     environment: "build"
