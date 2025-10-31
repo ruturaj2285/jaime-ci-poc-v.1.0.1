@@ -222,7 +222,7 @@ jobs:
     environment: "build"
     runs-on: ubuntu-latest
     needs: ["build","request_deployment_approval"]
-    if: github.event_name != 'pull_request'
+    if: ${{ !failure() && !cancelled() && github.event_name != 'pull_request' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
