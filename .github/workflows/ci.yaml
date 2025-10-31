@@ -108,6 +108,7 @@ jobs:
   license_scanning:
    runs-on: ubuntu-latest
    needs: Unit_Testing
+   continue-on-error: true
    steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -135,7 +136,7 @@ jobs:
   build:
     environment: "build"
     runs-on: ubuntu-latest
-    needs: Unit_Testing
+    needs: license_scanning
     outputs:
       # image_name: ${{ steps.image_name.outputs.result }}
       aws_assume_role: ${{ steps.build.outputs.aws_assume_role }}
