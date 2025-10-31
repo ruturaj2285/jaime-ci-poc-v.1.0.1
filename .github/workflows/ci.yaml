@@ -52,7 +52,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
 
       - name: Install dependencies
         run: npm run start
@@ -75,7 +75,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
 
       - name: Install dependencies
         run: npm run start
@@ -104,6 +104,33 @@ jobs:
 
     #   - name: Run Prettier (formatting check)
     #     run: npx prettier --check .
+
+  license_scanning:
+   runs-on: ubuntu-latest
+   needs: Unit_Testing
+   steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Install license-checker
+      run: npm install -g license-checker
+
+    - name: Run license-checker and generate report
+      run: license-checker --json > license_report.json
+
+    - name: Upload license report artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nodejs_license_report
+        path: license_report.json
 
   build:
     environment: "build"
