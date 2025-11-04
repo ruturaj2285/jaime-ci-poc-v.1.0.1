@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zap
+  labels:
+    app: zap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zap
+  template:
+    metadata:
+      labels:
+        app: zap
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: zap
+        image: ghcr.io/zaproxy/zaproxy:stable
+        ports:
+          - containerPort: 8080
+          - containerPort: 8090
+        command: ["/bin/sh", "-c"]
+        args:
+          - >
+            zap.sh -daemon
+            -host 0.0.0.0
+            -port 8080
+            -config api.disablekey=true
+            -config api.addrs.addr.name=.*
+            -config api.addrs.addr.regex=true
+            -config database.recoverylog=false
+            -config connection.timeoutInSecs=120;
+            tail -f /dev/null
+        volumeMounts:
+          - name: zap-workdir
+            mountPath: /zap/wrk
+          - name: zap-reports
+            mountPath: /zap/reports
+      volumes:
+        - name: zap-workdir
+          emptyDir: {}
+        - name: zap-reports
+          emptyDir: {}
+

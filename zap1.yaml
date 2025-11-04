@@ -1,0 +1,60 @@
+env:
+  contexts:
+    - name: api-context
+      urls:
+        - http://my-node-app.jaime-poc-2285.svc.cluster.local:80
+  parameters:
+    failOnError: true
+    progressToStdout: true
+
+jobs:
+  # Step 1: Import your OpenAPI spec
+  - type: openapi
+    parameters:
+      apiFile: /zap/swagger.json
+      targetUrl: http://my-node-app.jaime-poc-2285.svc.cluster.local:80
+
+  # Step 2: Run a passive scan after import
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 0
+
+
+  - type: activeScan
+    parameters:
+      context: api-context
+      policy: "ci-medium-high.policy"        # <- custom policy filename (see section 3)
+      maxRuleDurationInMins: 3              # per-rule time limit
+      maxScanDurationInMins: 15             # total active scan limit
+      maxAlertsPerRule: 5
+      recurse: true
+      inScopeOnly: true
+
+
+  # Step 3: Generate summary and reports
+  - type: outputSummary
+    parameters:
+      format: LONG
+      summaryFile: /zap/wrk/zap_out.json
+
+  - type: report
+    parameters:
+      reportDir: /zap/reports/
+      reportFile: zap_api_report.html
+      reportTitle: ZAP API Scan Report
+      template: traditional-html
+
+  - type: report
+    parameters:
+      reportDir: /zap/reports/
+      reportFile: zap_warn.txt
+      reportTitle: ZAP API Scan Warnings
+      template: traditional-md
+
+  - type: report
+    parameters:
+      reportDir: /zap/reports/
+      reportFile: zap_api_report.json
+      reportTitle: ZAP API JSON Report
+      template: traditional-json
+

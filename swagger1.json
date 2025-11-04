@@ -1,0 +1,186 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Node.js Demo API",
+    "version": "1.0.0",
+    "description": "Express.js API with both public and secure endpoints."
+  },
+  "servers": [
+    {
+      "url": "http://my-node-app.jaime-poc-2285.svc.cluster.local:80",
+      "description": "Kubernetes Cluster Service URL"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root endpoint",
+        "description": "Public endpoint returning welcome message.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello World! Welcome to Node.js"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/1": {
+      "get": {
+        "summary": "Hello 1",
+        "description": "Public endpoint returning message for /1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello World! Welcome to 1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/2": {
+      "get": {
+        "summary": "Hello 2",
+        "description": "Public endpoint returning message for /2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello World! Welcome to 2"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "summary": "Server status",
+        "description": "Returns current uptime and timestamp (public).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "Server is running" },
+                    "uptime": { "type": "number", "example": 123.45 },
+                    "timestamp": { "type": "string", "example": "2025-11-03T11:23:45.000Z" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/echo": {
+      "post": {
+        "summary": "Echo endpoint",
+        "description": "Public endpoint that echoes JSON body.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": { "message": "Hello" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Echo response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "You sent:" },
+                    "body": { "type": "object", "example": { "message": "Hello" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/secure": {
+      "get": {
+        "summary": "Secure API endpoint",
+        "description": "Accessible only with a valid Bearer token or query token.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "description": "Optional token query parameter for access.",
+            "required": false,
+            "schema": { "type": "string", "example": "mysecrettoken" }
+          }
+        ],
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "You have accessed a secure API!" },
+                    "user": { "type": "string", "example": "Authorized User" },
+                    "time": { "type": "string", "example": "2025-11-03T11:30:00.000Z" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Unauthorized: Invalid or missing token" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

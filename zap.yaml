@@ -1,0 +1,64 @@
+env:
+  contexts:
+    - name: api-context
+      urls:
+        - http://my-node-app.jaime-poc-2285.svc.cluster.local:80
+      authentication:
+        method: manual
+        parameters:
+          headerName: "Authorization"
+          headerValue: "Bearer mysecrettoken"
+  parameters:
+    failOnError: true
+    progressToStdout: true
+
+jobs:
+  # Step 1: Import OpenAPI spec
+  - type: openapi
+    parameters:
+      apiFile: /zap/swagger.json
+      targetUrl: http://my-node-app.jaime-poc-2285.svc.cluster.local:80
+
+  # Step 2: Wait for passive scan
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 0
+
+  # Step 3: Active scan (uses Bearer token for /secure)
+  - type: activeScan
+    parameters:
+      context: api-context
+      policy: "ci-medium-high.policy"
+      maxRuleDurationInMins: 3
+      maxScanDurationInMins: 15
+      maxAlertsPerRule: 5
+      recurse: true
+      inScopeOnly: true
+
+  # Step 4: Output summary
+  - type: outputSummary
+    parameters:
+      format: LONG
+      summaryFile: /zap/wrk/zap_out.json
+
+  # Step 5: Reports
+  - type: report
+    parameters:
+      reportDir: /zap/reports/
+      reportFile: zap_api_report.html
+      reportTitle: ZAP API Scan Report
+      template: traditional-html
+
+  - type: report
+    parameters:
+      reportDir: /zap/reports/
+      reportFile: zap_warn.txt
+      reportTitle: ZAP API Scan Warnings
+      template: traditional-md
+
+  - type: report
+    parameters:
+      reportDir: /zap/reports/
+      reportFile: zap_api_report.json
+      reportTitle: ZAP API JSON Report
+      template: traditional-json
