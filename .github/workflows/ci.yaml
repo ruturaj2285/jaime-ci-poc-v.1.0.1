@@ -321,6 +321,7 @@ jobs:
   zap_scan:
       # Deploy to EKS and run ZAP after image is pushed
       runs-on: ubuntu-latest
+      if: always()
       needs: push_to_ecr
       steps:
         - name: Checkout source code (for manifests and zap files)
