@@ -406,7 +406,7 @@ jobs:
           run: |
             kubectl cp zap.yaml "$POD_NAME:/zap/wrk/zap.yaml" -n "$NAMESPACE_1"
             kubectl cp swagger1.json "$POD_NAME:/zap/swagger.json" -n "$NAMESPACE_1"
-            kubectl cp 1.yaml "$POD_NAME:/zap/2.yaml" -n "$NAMESPACE_1"
+            # kubectl cp 1.yaml "$POD_NAME:/zap/2.yaml" -n "$NAMESPACE_1"
     
         - name: Run ZAP scan inside pod (non-fatal)
           run: |
