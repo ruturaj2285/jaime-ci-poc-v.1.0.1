@@ -39,6 +39,15 @@ env:
   AZ_DEVOPS_ORG: https://dev.azure.com/hariom0502
   AZ_DEVOPS_BRANCH: main
   AZ_DEVOPS_APPROVAL_PIPELINE_NAME: Deploy_Request
+  AWS_REGION: us-east-1
+  AWS_REGION_1: ap-northeast-1
+  ECR_REPO: node-poc
+  CLUSTER_NAME: jaime-poc
+  NODE_DEPLOYMENT_FILE: deployment.yaml
+  ZAP_DEPLOYMENT_FILE: zap-deployment.yaml
+  NAMESPACE_1: jaime-poc-2285
+  NAMESPACE_2: jaime-poc-6460
+  APP_DIR: ./    # folder containing Dockerfile
 
 jobs:
   Linting_and_Formatting:
@@ -307,4 +316,123 @@ jobs:
   #       context: .
   #       push: true
   #       tags: ${{ steps.meta.outputs.tags }}
-   
+
+ 
+  zap_scan:
+      # Deploy to EKS and run ZAP after image is pushed
+      runs-on: self-hosted
+      needs: push_to_ecr
+      steps:
+        - name: Checkout source code (for manifests and zap files)
+          uses: actions/checkout@v4
+    
+        # - name: Configure AWS credentials (same role as push)
+        #   uses: aws-actions/configure-aws-credentials@v4
+        #   with:
+        #     role-to-assume: ${{ needs.build.outputs.aws_assume_role }}
+        #     aws-region: ${{ needs.build.outputs.aws_region }}
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+            aws-region: ap-northeast-1
+
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v2
+  
+        - name: Build and push Docker image to ECR
+          id: build-image
+          env:
+            IMAGE_TAG: ${{ github.run_number }}
+          run: |
+            echo "🔧 Building Docker image..."
+            docker build -t $ECR_REPO:$IMAGE_TAG $APP_DIR
+            echo "Tagging image for ECR..."
+            ECR_URI="${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:$IMAGE_TAG"
+            docker tag $ECR_REPO:$IMAGE_TAG $ECR_URI
+            echo "Pushing image to ECR..."
+            docker push $ECR_URI
+            echo "IMAGE_URI=$ECR_URI" >> $GITHUB_ENV
+            echo "Image pushed: $ECR_URI"
+      
+        - name: Update kubeconfig for EKS
+          run: aws eks update-kubeconfig --region $AWS_REGION_1 --name $CLUSTER_NAME
+
+        - name: Update image in Kubernetes deployment file
+          run: |
+            echo "Updating image in $NODE_DEPLOYMENT_FILE"
+            sed -i "s|image: .*|image: ${IMAGE_URI}|g" $NODE_DEPLOYMENT_FILE
+            echo "Updated deployment image to: ${IMAGE_URI}"
+
+        - name: Deploy updated Node app to EKS
+          run: |
+            echo "Applying Node.js deployment to EKS..."
+            kubectl apply -f $NODE_DEPLOYMENT_FILE -n $NAMESPACE_1
+            # kubectl rollout status deployment/my-node-app -n $NAMESPACE_1 --timeout=120s
+            echo "Node app deployed successfully!"
+
+    
+        # - name: Update deployment image to new tag
+        #   shell: bash
+        #   run: |
+        #     IMAGE_URI="${{ needs.push_to_ecr.outputs.pushed_tag }}"
+        #     echo "Using image: $IMAGE_URI"
+        #     sed -i "s|image: .*|image: ${IMAGE_URI}|g" "$NODE_DEPLOYMENT_FILE"
+        #     echo "Patched $NODE_DEPLOYMENT_FILE with $IMAGE_URI"
+    
+        # - name: Deploy updated Node app to EKS
+        #   run: |
+        #     echo "Applying Node.js deployment to EKS..."
+        #     kubectl apply -f "$NODE_DEPLOYMENT_FILE" -n "$NAMESPACE_1"
+        #     kubectl rollout status deployment/my-node-app -n "$NAMESPACE_1" --timeout=180s || true
+        #     echo "Node app deployed (or rollout check skipped)."
+    
+        - name: Get ZAP Pod details
+          shell: bash
+          run: |
+            kubectl get pods -n "$NAMESPACE_1"
+            kubectl get pods -n "$NAMESPACE_2"
+            kubectl get pods -n "$NAMESPACE_1" --show-labels
+            POD_NAME=$(kubectl get pods -n "$NAMESPACE_1" -l app=zap -o jsonpath='{.items[0].metadata.name}')
+            echo "POD_NAME=$POD_NAME" >> $GITHUB_ENV
+            echo "Pod name found: $POD_NAME"
+    
+        - name: Copy files into ZAP pod
+          run: |
+            kubectl cp zap.yaml "$POD_NAME:/zap/wrk/zap.yaml" -n "$NAMESPACE_1"
+            kubectl cp swagger1.json "$POD_NAME:/zap/swagger.json" -n "$NAMESPACE_1"
+            kubectl cp 1.yaml "$POD_NAME:/zap/2.yaml" -n "$NAMESPACE_1"
+    
+        - name: Run ZAP scan inside pod (non-fatal)
+          run: |
+            echo "Running ZAP scan inside pod: $POD_NAME"
+            kubectl exec -n "$NAMESPACE_1" "$POD_NAME" -- pwd || true
+            kubectl exec -n "$NAMESPACE_1" "$POD_NAME" -- ls /zap/reports || true
+            kubectl exec -n "$NAMESPACE_1" "$POD_NAME" -- bash -c "/zap/zap.sh -cmd -autorun /zap/wrk/zap.yaml -config dir.home=/zap/wrk -config dir.report=/zap/reports -config api.disablekey=true -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true" || true
+    
+        - name: Copy ZAP report from pod to runner
+          run: |
+            kubectl cp "$NAMESPACE_1/$POD_NAME:/zap/reports/zap_api_report.html" ./zap_api_report.html || (echo "No report found" && exit 0)
+            ls -lh zap_api_report.html || true
+    
+        - name: Upload ZAP report as artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: zap-api-report
+            path: zap_api_report.html
+            retention-days: 5
+
+        - name: Open report automatically (local use)
+          if: runner.os == 'Linux'
+          run: |
+            xdg-open zap_api_report.html || true
+    
+        - name: Print Artifact Download URL
+          run: |
+            echo "ZAP Report successfully uploaded."
+            echo "Open: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts"
+    
