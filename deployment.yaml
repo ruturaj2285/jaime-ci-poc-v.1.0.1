@@ -16,7 +16,7 @@ spec:
       - name: my-node-app
         image: 227295996532.dkr.ecr.ap-northeast-1.amazonaws.com/node-jaime-poc:1
         ports:
-        - containerPort: 3000
+        - containerPort: 3001
 ---
 apiVersion: v1
 kind: Service
@@ -29,5 +29,5 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 3000
+      targetPort: 3001
 
